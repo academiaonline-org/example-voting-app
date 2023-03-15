@@ -1,0 +1,173 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  ports:
+  -
+    port: 6379
+    protocol: TCP
+    targetPort: 6379
+  selector:
+    app: redis
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: redis-rc
+spec:
+  replicas: 1
+  selector:
+    app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      -
+        image: redis:alpine
+        name: redis-container
+        ports:
+        -
+          containerPort: 6379
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  ports:
+  -
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: db
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-pod
+  labels:
+    app: db
+spec:
+  containers:
+  -
+    env:
+    -
+      name: POSTGRES_USER
+      value: postgres
+    -
+      name: POSTGRES_PASSWORD
+      value: postgres
+    image: postgres:9.4
+    name: db-container
+    ports:
+    -
+      containerPort: 5432
+      protocol: TCP
+    volumeMounts:
+    -
+      mountPath: /var/lib/postgresql/data/
+      name: db-data
+  volumes:
+  -
+    emptyDir:
+      medium: Memory
+      sizeLimit: 1Gi
+    name: db-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote
+spec:
+  ports:
+  -
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: vote
+  type: NodePort
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: vote-rc
+spec:
+  replicas: 1
+  selector:
+    app: vote
+  template:
+    metadata:
+      labels:
+        app: vote
+    spec:
+      containers:
+      -
+        image: training/voting-app:v1
+        name: vote-container
+        ports:
+        -
+          containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: result
+spec:
+  ports:
+  -
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: result
+  type: NodePort
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: result-rc
+spec:
+  replicas: 1
+  selector:
+    app: result
+  template:
+    metadata:
+      labels:
+        app: result
+    spec:
+      containers:
+      -
+        image: training/voting-result:v1
+        name: result-container
+        ports:
+        -
+          containerPort: 80
+          protocol: TCP
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: worker-rc
+spec:
+  replicas: 1
+  selector:
+    app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+        APP: VOTING
+    spec:
+      containers:
+      -
+        image: training/voting-worker:v1
+        name: worker-container
