@@ -1,0 +1,34 @@
+################################################################################
+#      Copyright (C) 2024        Sebastian Francisco Colomar Bauza             #
+#      SPDX-License-Identifier:  GPL-2.0-only                                  #
+################################################################################
+name: CI-deploy                                                                       #
+on:                                                                            #
+  push:                                                                        #
+    branches:                                                                  #
+    - master                                                                     #
+jobs:                                                                          #
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v2
+    - name: minikube
+      run: |
+        curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
+        sudo apt-get install ./minikube_latest_amd64.deb
+    - name: init
+      run: minikube start --driver=docker
+    - name: apply
+      run: kubectl apply -f master/k8s-specifications/redis-deployment.yaml
+    - name: test
+      run: |
+        set -x
+        while true
+          do
+            sleep 10
+            kubectl logs deploy/redis 2>&1|grep -i "redis" && break
+            kubectl logs deploy/redis 2>&1
+            kubectl get all
+          done
+################################################################################
