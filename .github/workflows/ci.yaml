@@ -27,8 +27,8 @@ jobs:                                                                          #
         while true
           do
             sleep 10
-            kubectl logs deploy/redis 2>&1|grep -i "redis" && break
             kubectl logs deploy/redis 2>&1
             kubectl get all
+            kubectl logs deploy/redis 2>&1|grep -i "redis" && break
           done
 ################################################################################
